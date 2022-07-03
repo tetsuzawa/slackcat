@@ -16,22 +16,22 @@ import (
 var wg sync.WaitGroup
 
 func main() {
-	var oneLine, verboseMode bool
+	var oneLine, verboseMode, plainTextMode bool
 	var webhookURL, lines string
 	flag.StringVar(&webhookURL, "u", "", "Slack Webhook URL")
 	flag.BoolVar(&oneLine, "1", false, "Send message line-by-line")
 	flag.BoolVar(&verboseMode, "v", false, "Verbose mode")
+	flag.BoolVar(&plainTextMode, "p", false, "Plain text mode")
 	flag.Parse()
 
 	webhookEnv := os.Getenv("SLACK_WEBHOOK_URL")
 	if webhookEnv != "" {
 		webhookURL = webhookEnv
-	} else {
-		if webhookURL == "" {
-			if verboseMode {
-				fmt.Println("Slack Webhook URL not set!")
-			}
-		}
+	}
+
+	if webhookURL == "" {
+		fmt.Fprintln(os.Stderr, "Slack Webhook URL not set!")
+		os.Exit(1)
 	}
 
 	if !isStdin() {
@@ -44,10 +44,11 @@ func main() {
 
 		fmt.Println(line)
 		if oneLine {
-			if webhookURL != "" {
-				wg.Add(1)
-				go slackCat(webhookURL, line)
+			if !plainTextMode {
+				line = codeBlock(line)
 			}
+			wg.Add(1)
+			go slackCat(webhookURL, line)
 		} else {
 			lines += line
 			lines += "\n"
@@ -55,6 +56,9 @@ func main() {
 	}
 
 	if !oneLine {
+		if !plainTextMode {
+			lines = codeBlock(lines)
+		}
 		wg.Add(1)
 		go slackCat(webhookURL, lines)
 	}
@@ -82,4 +86,8 @@ func slackCat(url string, line string) {
 	data, _ := json.Marshal(data{Text: stripansi.Strip(line)})
 	http.Post(url, "application/json", strings.NewReader(string(data)))
 	wg.Done()
+}
+
+func codeBlock(s string) string {
+	return fmt.Sprintf("```%s```", s)
 }
