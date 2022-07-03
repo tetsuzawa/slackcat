@@ -33,6 +33,7 @@ Usage of slackcat:
   -1    Send message line-by-line
   -u string
         Slack Webhook URL
+  -p    Plain text mode
   -v    Verbose mode
 ```
 
