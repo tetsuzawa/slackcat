@@ -42,7 +42,9 @@ func main() {
 	for sc.Scan() {
 		line := sc.Text()
 
-		fmt.Println(line)
+		if verboseMode {
+			fmt.Println(line)
+		}
 		if oneLine {
 			if !plainTextMode {
 				line = codeBlock(line)
